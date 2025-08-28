@@ -25,6 +25,8 @@ export default function Feed({ onPostCreated, onPostDeleted, onViewChange }: Fee
   const fetchFeed = useCallback(async (forceRefresh = false) => {
     if (!profile?.id) return
     
+    console.log('Feed: Starting to fetch feed data...')
+    
     // Cancel any ongoing request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
@@ -33,10 +35,19 @@ export default function Feed({ onPostCreated, onPostDeleted, onViewChange }: Fee
     // Create new abort controller
     abortControllerRef.current = new AbortController()
     
+    // Add timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      console.error('Feed: Loading timeout reached, stopping...')
+      setLoading(false)
+      setPosts([])
+    }, 15000) // 15 second timeout
+    
     try {
       if (forceRefresh) {
         setLoading(true)
       }
+      
+      console.log('Feed: Fetching follows for user:', profile.id)
       
       // Get users that current user follows
       const { data: follows, error: followsError } = await supabase
@@ -52,11 +63,15 @@ export default function Feed({ onPostCreated, onPostDeleted, onViewChange }: Fee
       const followingIds = follows?.map(f => f.following_id) || []
       const userIds = [...followingIds, profile.id].filter(Boolean)
       
+      console.log('Feed: Following IDs:', followingIds, 'User IDs for posts:', userIds)
+      
       // Ensure we have valid user IDs
       if (userIds.length === 0) {
         userIds.push(profile.id)
       }
 
+      console.log('Feed: Fetching posts for user IDs:', userIds)
+      
       // Get posts from followed users and own posts
       const { data: feedPosts, error: postsError } = await supabase
         .from('posts')
@@ -71,9 +86,13 @@ export default function Feed({ onPostCreated, onPostDeleted, onViewChange }: Fee
         throw postsError
       }
 
+      console.log('Feed: Posts fetched successfully:', feedPosts?.length || 0)
+
       // Get author profiles for all posts
       if (feedPosts && feedPosts.length > 0) {
         const authorIds = Array.from(new Set(feedPosts.map(post => post.author_id)))
+        console.log('Feed: Fetching profiles for author IDs:', authorIds)
+        
         const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
           .select('id, username, first_name, last_name, avatar_url')
@@ -94,12 +113,15 @@ export default function Feed({ onPostCreated, onPostDeleted, onViewChange }: Fee
           }
         }))
         
+        console.log('Feed: Setting posts, count:', transformedPosts.length)
         setPosts(transformedPosts)
         setLastFetchTime(new Date())
       } else {
-        setPosts([])
-      }
-    } catch (error: any) {
+              console.log('Feed: No posts found, setting empty array')
+      setPosts([])
+      setLoading(false) // Make sure loading stops when no posts
+    }
+  } catch (error: any) {
       if (error.name === 'AbortError') {
         console.log('Feed fetch was cancelled')
         return
@@ -157,6 +179,7 @@ export default function Feed({ onPostCreated, onPostDeleted, onViewChange }: Fee
   // Initial feed fetch when component mounts
   useEffect(() => {
     if (profile?.id) {
+      console.log('Feed: Initial fetch for profile:', profile.id)
       fetchFeed(true)
     }
     
@@ -170,10 +193,10 @@ export default function Feed({ onPostCreated, onPostDeleted, onViewChange }: Fee
   // Refresh feed when profile changes (user follows/unfollows someone)
   useEffect(() => {
     if (profile?.id && lastFetchTime) {
-      console.log('Profile changed, refreshing feed...')
+      console.log('Feed: Profile changed, refreshing feed...')
       fetchFeed(true)
     }
-  }, [profile?.id])
+  }, [profile?.id]) // Remove lastFetchTime dependency to prevent loops
 
   const handlePostCreated = (newPost: Post) => {
     setPosts(prev => [newPost, ...prev])
@@ -207,7 +230,7 @@ export default function Feed({ onPostCreated, onPostDeleted, onViewChange }: Fee
     return () => {
       window.removeEventListener('refreshProfileCounts', handleRefreshProfileCounts)
     }
-  }, [fetchFeed])
+  }, []) // Remove fetchFeed dependency to prevent loops
 
   // Auto-refresh feed every 3 minutes to show new posts from followed users
   useEffect(() => {
@@ -224,11 +247,13 @@ export default function Feed({ onPostCreated, onPostDeleted, onViewChange }: Fee
     }, 60000) // Check every minute
 
     return () => clearInterval(interval)
-  }, [profile, lastFetchTime, fetchFeed])
+  }, [profile, lastFetchTime]) // Remove fetchFeed dependency
 
   // Set up real-time subscription for new posts
   useEffect(() => {
     if (!profile?.id) return
+
+    console.log('Feed: Setting up real-time subscription for profile:', profile.id)
 
     const postsSubscription = supabase
       .channel('feed-posts')
@@ -239,8 +264,10 @@ export default function Feed({ onPostCreated, onPostDeleted, onViewChange }: Fee
           // Only add if it's from a followed user or own post
           if (newPost.author_id === profile.id || 
               posts.some(p => p.author_id === newPost.author_id)) {
-            console.log('New post detected, refreshing feed...')
-            fetchFeed()
+            console.log('Feed: New post detected, refreshing feed...')
+            // Don't call fetchFeed here - it causes loops
+            // Instead, just add the new post to state
+            setPosts(prev => [newPost, ...prev])
           }
         }
       )
@@ -259,7 +286,7 @@ export default function Feed({ onPostCreated, onPostDeleted, onViewChange }: Fee
     return () => {
       supabase.removeChannel(postsSubscription)
     }
-  }, [profile?.id, posts, fetchFeed])
+  }, [profile?.id]) // Remove posts and fetchFeed dependencies
 
   if (loading) {
     return (
