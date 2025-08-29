@@ -244,9 +244,10 @@ export default function PostCard({ post, onPostDeleted, currentUserId, onCountUp
     if (!confirm('Are you sure you want to delete this post?')) return
 
     try {
+      // Actually delete the post instead of soft-deleting
       await supabase
         .from('posts')
-        .update({ is_active: false })
+        .delete()
         .eq('id', post.id)
 
       onPostDeleted(post.id)
@@ -261,7 +262,6 @@ export default function PostCard({ post, onPostDeleted, currentUserId, onCountUp
         .from('comments')
         .select('*')
         .eq('post_id', post.id)
-        .eq('is_active', true)
         .order('created_at', { ascending: true })
 
       if (error) {

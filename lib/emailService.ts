@@ -8,6 +8,12 @@ export const sendPasswordResetEmail = async (
   userName: string
 ) => {
   try {
+    // Check if APP_URL is configured
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL
+    if (!appUrl) {
+      throw new Error('NEXT_PUBLIC_APP_URL environment variable is not configured. Please set this to your deployed application URL.')
+    }
+    
     // For now, we'll use console logging as a fallback
     // In production, you would integrate with a real email service
     
@@ -16,7 +22,7 @@ export const sendPasswordResetEmail = async (
     console.log('Subject: Password Reset Request - SocialConnect')
     console.log('Token:', token)
     console.log('UserName:', userName)
-    console.log('Reset Link:', `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/reset-password?token=${token}`)
+    console.log('Reset Link:', `${appUrl}/auth/reset-password?token=${token}`)
     console.log('📧 End of Email')
     
     // TODO: Integrate with real email service

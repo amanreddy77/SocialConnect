@@ -26,6 +26,8 @@ export default function Feed({ onPostCreated, onPostDeleted, onViewChange }: Fee
     if (!profile?.id) return
     
     console.log('Feed: Starting to fetch feed data...')
+    console.log('Feed: Environment check - NODE_ENV:', process.env.NODE_ENV)
+    console.log('Feed: Profile ID:', profile.id)
     
     // Cancel any ongoing request
     if (abortControllerRef.current) {
@@ -35,12 +37,13 @@ export default function Feed({ onPostCreated, onPostDeleted, onViewChange }: Fee
     // Create new abort controller
     abortControllerRef.current = new AbortController()
     
-    // Add timeout to prevent infinite loading
-    const timeoutId = setTimeout(() => {
-      console.error('Feed: Loading timeout reached, stopping...')
-      setLoading(false)
-      setPosts([])
-    }, 15000) // 15 second timeout
+    // NO TIMEOUT - this was causing posts to disappear!
+    // const timeoutId = setTimeout(() => {
+    //   console.error('Feed: Loading timeout reached, but keeping existing posts')
+    //   setLoading(false)
+    //   // DON'T clear posts - this was causing the disappearing issue!
+    //   // setPosts([]) // REMOVED - this was the problem!
+    // }, 30000) // Increased to 30 seconds
     
     try {
       if (forceRefresh) {
@@ -48,6 +51,7 @@ export default function Feed({ onPostCreated, onPostDeleted, onViewChange }: Fee
       }
       
       console.log('Feed: Fetching follows for user:', profile.id)
+      console.log('Feed: Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
       
       // Get users that current user follows
       const { data: follows, error: followsError } = await supabase
@@ -77,7 +81,6 @@ export default function Feed({ onPostCreated, onPostDeleted, onViewChange }: Fee
         .from('posts')
         .select('*')
         .in('author_id', userIds)
-        .eq('is_active', true)
         .order('created_at', { ascending: false })
         .limit(30)
 
@@ -88,37 +91,54 @@ export default function Feed({ onPostCreated, onPostDeleted, onViewChange }: Fee
 
       console.log('Feed: Posts fetched successfully:', feedPosts?.length || 0)
 
-      // Get author profiles for all posts
-      if (feedPosts && feedPosts.length > 0) {
-        const authorIds = Array.from(new Set(feedPosts.map(post => post.author_id)))
-        console.log('Feed: Fetching profiles for author IDs:', authorIds)
-        
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, username, first_name, last_name, avatar_url')
-          .in('id', authorIds)
+              // Get author profiles for all posts
+        if (feedPosts && feedPosts.length > 0) {
+          const authorIds = Array.from(new Set(feedPosts.map(post => post.author_id)))
+          console.log('Feed: Fetching profiles for author IDs:', authorIds)
+          
+          // Fetch profiles with better error handling and fallback
+          let profiles = null
+          try {
+            const { data: profilesData, error: profilesError } = await supabase
+              .from('profiles')
+              .select('id, username, first_name, last_name, avatar_url, full_name')
+              .in('id', authorIds)
 
-        if (profilesError) {
-          console.error('Error fetching author profiles:', profilesError)
-        }
-
-        // Transform posts with author data
-        const transformedPosts = feedPosts.map(post => ({
-          ...post,
-          author: profiles?.find(p => p.id === post.author_id) || {
-            id: post.author_id,
-            username: 'Unknown User',
-            first_name: 'Unknown',
-            last_name: 'User'
+            if (profilesError) {
+              console.error('Error fetching author profiles:', profilesError)
+              // Continue with fallback profiles
+            } else {
+              profiles = profilesData
+            }
+          } catch (profileFetchError) {
+            console.error('Exception fetching profiles:', profileFetchError)
           }
-        }))
+
+          // Transform posts with author data and better fallbacks
+          const transformedPosts = feedPosts.map(post => {
+            const authorProfile = profiles?.find(p => p.id === post.author_id)
+            
+            return {
+              ...post,
+              author: authorProfile || {
+                id: post.author_id,
+                username: `user_${post.author_id.slice(0, 8)}`,
+                first_name: 'User',
+                last_name: 'User',
+                full_name: 'User User',
+                avatar_url: null
+              }
+            }
+          })
         
-        console.log('Feed: Setting posts, count:', transformedPosts.length)
-        setPosts(transformedPosts)
-        setLastFetchTime(new Date())
+              console.log('Feed: Setting posts, count:', transformedPosts.length)
+      console.log('Feed: Posts to be set:', transformedPosts.map(p => ({ id: p.id, author_id: p.author_id, content: p.content?.substring(0, 30) })))
+      setPosts(transformedPosts)
+      setLastFetchTime(new Date())
       } else {
-              console.log('Feed: No posts found, setting empty array')
-      setPosts([])
+              console.log('Feed: No posts found, but keeping existing posts')
+      // DON'T clear posts - this was causing the disappearing issue!
+      // setPosts([]) // REMOVED - this was the problem!
       setLoading(false) // Make sure loading stops when no posts
     }
   } catch (error: any) {
@@ -136,7 +156,6 @@ export default function Feed({ onPostCreated, onPostDeleted, onViewChange }: Fee
           .from('posts')
           .select('*')
           .eq('author_id', profile?.id)
-          .eq('is_active', true)
           .order('created_at', { ascending: false })
           .limit(20)
 
@@ -149,13 +168,20 @@ export default function Feed({ onPostCreated, onPostDeleted, onViewChange }: Fee
             ...post,
             author: {
               id: profile?.id,
-              username: profile?.username,
-              first_name: profile?.first_name,
-              last_name: profile?.last_name
+              username: profile?.username || `user_${profile?.id?.slice(0, 8)}`,
+              first_name: profile?.first_name || 'User',
+              last_name: profile?.last_name || 'User',
+              full_name: profile?.full_name || `${profile?.first_name || 'User'} ${profile?.last_name || 'User'}`,
+              avatar_url: profile?.avatar_url
             }
           })) || []
           
-          setPosts(transformedOwnPosts)
+          // Merge with existing posts instead of replacing to prevent disappearing
+          setPosts(prev => {
+            const existingPostIds = new Set(prev.map(p => p.id))
+            const newPosts = transformedOwnPosts.filter(p => !existingPostIds.has(p.id))
+            return [...newPosts, ...prev]
+          })
           toast('Showing your posts only. Some content may not be available.')
         }
       } catch (fallbackError) {
@@ -164,8 +190,27 @@ export default function Feed({ onPostCreated, onPostDeleted, onViewChange }: Fee
       }
     } finally {
       setLoading(false)
+      // No timeout to clear - removed to prevent posts disappearing
     }
   }, [profile?.id])
+
+  // Monitor posts state changes to detect when posts disappear
+  useEffect(() => {
+    console.log('Feed: Posts state changed:', {
+      count: posts.length,
+      postIds: posts.map(p => p.id),
+      timestamp: new Date().toISOString()
+    })
+  }, [posts])
+
+  // Monitor profile changes
+  useEffect(() => {
+    console.log('Feed: Profile changed:', {
+      profileId: profile?.id,
+      profileUsername: profile?.username,
+      timestamp: new Date().toISOString()
+    })
+  }, [profile])
 
   // Handle count updates from PostCard components
   const handleCountUpdate = useCallback((postId: string, likeCount: number, commentCount: number) => {
@@ -232,7 +277,9 @@ export default function Feed({ onPostCreated, onPostDeleted, onViewChange }: Fee
     }
   }, []) // Remove fetchFeed dependency to prevent loops
 
-  // Auto-refresh feed every 3 minutes to show new posts from followed users
+  // TEMPORARILY DISABLED: Auto-refresh feed every 3 minutes to show new posts from followed users
+  // This was causing posts to disappear - investigating the issue
+  /*
   useEffect(() => {
     const interval = setInterval(() => {
       if (profile && lastFetchTime) {
@@ -248,37 +295,23 @@ export default function Feed({ onPostCreated, onPostDeleted, onViewChange }: Fee
 
     return () => clearInterval(interval)
   }, [profile, lastFetchTime]) // Remove fetchFeed dependency
+  */
 
-  // Set up real-time subscription for new posts
+  // Set up real-time subscription for new posts (SIMPLIFIED)
   useEffect(() => {
     if (!profile?.id) return
 
-    console.log('Feed: Setting up real-time subscription for profile:', profile.id)
+    console.log('Feed: Setting up simplified real-time subscription for profile:', profile.id)
 
     const postsSubscription = supabase
-      .channel('feed-posts')
+      .channel('feed-posts-simple')
       .on('postgres_changes', 
         { event: 'INSERT', schema: 'public', table: 'posts' },
         (payload) => {
           const newPost = payload.new as Post
-          // Only add if it's from a followed user or own post
-          if (newPost.author_id === profile.id || 
-              posts.some(p => p.author_id === newPost.author_id)) {
-            console.log('Feed: New post detected, refreshing feed...')
-            // Don't call fetchFeed here - it causes loops
-            // Instead, just add the new post to state
-            setPosts(prev => [newPost, ...prev])
-          }
-        }
-      )
-      .on('postgres_changes', 
-        { event: 'UPDATE', schema: 'public', table: 'posts' },
-        (payload) => {
-          const updatedPost = payload.new as Post
-          if (updatedPost.is_active === false) {
-            // Post was deleted/deactivated
-            setPosts(prev => prev.filter(p => p.id !== updatedPost.id))
-          }
+          console.log('Feed: New post detected:', newPost.id)
+          // Simply add new posts to the top
+          setPosts(prev => [newPost, ...prev])
         }
       )
       .subscribe()
@@ -286,7 +319,7 @@ export default function Feed({ onPostCreated, onPostDeleted, onViewChange }: Fee
     return () => {
       supabase.removeChannel(postsSubscription)
     }
-  }, [profile?.id]) // Remove posts and fetchFeed dependencies
+  }, [profile?.id])
 
   if (loading) {
     return (

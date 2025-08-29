@@ -57,6 +57,7 @@ Update `.env.local` with your Supabase credentials:
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+# For development only - use your production URL in production
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
@@ -94,6 +95,18 @@ The application uses a well-structured PostgreSQL schema with:
 - **Session management** with automatic refresh
 - **Role-based access** control (user, moderator, admin)
 
+### Email Configuration
+
+**Supabase Auth Emails**: When users sign up, Supabase automatically sends confirmation emails. To ensure these emails contain the correct URLs:
+
+1. Go to your Supabase project dashboard
+2. Navigate to **Authentication** → **URL Configuration**
+3. Set **Site URL** to your production domain (e.g., `https://your-app.vercel.app`)
+4. Set **Redirect URLs** to include your production domain
+5. Update **Email Templates** if you want to customize the email content
+
+**Password Reset Emails**: The application also sends password reset emails through the email service. Ensure `NEXT_PUBLIC_APP_URL` is set to your production URL.
+
 ## 🚀 Deployment
 
 ### Vercel Deployment
@@ -112,6 +125,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 NEXT_PUBLIC_APP_URL=https://your-domain.vercel.app
 ```
+
+**Important**: The `NEXT_PUBLIC_APP_URL` must be set to your deployed application URL (e.g., `https://your-app.vercel.app`) for email confirmations and password reset links to work correctly in production. Do not use localhost URLs in production.
 
 ## 🏗️ Project Structure
 
@@ -232,6 +247,21 @@ npm run lint
 # Build for production
 npm run build
 ```
+
+## 🔧 Troubleshooting
+
+### Email Issues
+
+**Confirmation emails contain localhost URLs:**
+1. Check your Supabase project's **Authentication** → **URL Configuration**
+2. Ensure **Site URL** is set to your production domain
+3. Verify `NEXT_PUBLIC_APP_URL` environment variable is set to your production URL
+4. Clear browser cache and test with a new email
+
+**Password reset emails not working:**
+1. Verify `NEXT_PUBLIC_APP_URL` is set correctly in your environment
+2. Check that the email service is properly configured
+3. Ensure your production domain is accessible and SSL is configured
 
 ## 📄 License
 

@@ -265,6 +265,8 @@ export default function AdminPanel() {
     }
 
     try {
+      console.log('Admin: Deleting user:', userId)
+      
       // Delete user data in the correct order to avoid foreign key constraints
       // 1. Delete likes first
       const { error: likesError } = await supabase
@@ -272,15 +274,23 @@ export default function AdminPanel() {
         .delete()
         .eq('user_id', userId)
 
-      if (likesError) throw likesError
+      if (likesError) {
+        console.error('Admin: Error deleting likes:', likesError)
+        throw likesError
+      }
+      console.log('Admin: Likes deleted successfully')
 
       // 2. Delete comments
       const { error: commentsError } = await supabase
         .from('comments')
         .delete()
-        .eq('user_id', userId)
+        .eq('author_id', userId)
 
-      if (commentsError) throw commentsError
+      if (commentsError) {
+        console.error('Admin: Error deleting comments:', commentsError)
+        throw commentsError
+      }
+      console.log('Admin: Comments deleted successfully')
 
       // 3. Delete follows (both as follower and following)
       const { error: followsError } = await supabase
@@ -288,7 +298,11 @@ export default function AdminPanel() {
         .delete()
         .or(`follower_id.eq.${userId},following_id.eq.${userId}`)
 
-      if (followsError) throw followsError
+      if (followsError) {
+        console.error('Admin: Error deleting follows:', followsError)
+        throw followsError
+      }
+      console.log('Admin: Follows deleted successfully')
 
       // 4. Delete notifications
       const { error: notificationsError } = await supabase
@@ -296,7 +310,11 @@ export default function AdminPanel() {
         .delete()
         .or(`sender_id.eq.${userId},recipient_id.eq.${userId}`)
 
-      if (notificationsError) throw notificationsError
+      if (notificationsError) {
+        console.error('Admin: Error deleting notifications:', notificationsError)
+        throw notificationsError
+      }
+      console.log('Admin: Notifications deleted successfully')
 
       // 5. Delete posts
       const { error: postsError } = await supabase
@@ -304,7 +322,11 @@ export default function AdminPanel() {
         .delete()
         .eq('author_id', userId)
 
-      if (postsError) throw postsError
+      if (postsError) {
+        console.error('Admin: Error deleting posts:', postsError)
+        throw postsError
+      }
+      console.log('Admin: Posts deleted successfully')
 
       // 6. Finally delete the user profile
       const { error: profileError } = await supabase
@@ -312,7 +334,11 @@ export default function AdminPanel() {
         .delete()
         .eq('id', userId)
 
-      if (profileError) throw profileError
+      if (profileError) {
+        console.error('Admin: Error deleting profile:', profileError)
+        throw profileError
+      }
+      console.log('Admin: Profile deleted successfully')
 
       // Update local state only after successful deletion
       setUsers(prev => prev.filter(user => user.id !== userId))
@@ -326,15 +352,17 @@ export default function AdminPanel() {
 
       toast.success('User and all associated data deleted permanently')
     } catch (error: any) {
-      console.error('Error deleting user:', error)
+      console.error('Admin: Error deleting user:', error)
       
       // Provide more specific error messages
       if (error.message?.includes('foreign key')) {
         toast.error('Cannot delete user: They have active relationships with other data')
       } else if (error.message?.includes('permission')) {
-        toast.error('Permission denied: You cannot delete this user')
+        toast.error('Permission denied: You cannot delete this user. Check RLS policies.')
+      } else if (error.message?.includes('RLS')) {
+        toast.error('Row Level Security blocked the operation. Run the admin permissions fix SQL.')
       } else {
-        toast.error('Failed to delete user. Please try again or contact support.')
+        toast.error(`Failed to delete user: ${error.message || 'Unknown error'}`)
       }
     }
   }

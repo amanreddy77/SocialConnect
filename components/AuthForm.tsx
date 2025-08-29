@@ -58,36 +58,63 @@ export default function AuthForm() {
         }
 
         if (user) {
-          // Create profile with all required fields
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert({
-              id: user.id,
-              email: formData.email,
-              username: formData.username,
-              first_name: formData.firstName,
-              last_name: formData.lastName,
-              role: 'user',
-              bio: '',
-              avatar_url: '',
-              website: '',
-              location: '',
-              is_private: false,
-              followers_count: 0,
-              following_count: 0,
-              posts_count: 0
-            })
+          // Wait a moment for the auth session to be established
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          
+          // Try to create profile with retry logic
+          let profileError = null
+          let retryCount = 0
+          const maxRetries = 3
+          
+          while (retryCount < maxRetries) {
+            try {
+              const { error } = await supabase
+                .from('profiles')
+                .insert({
+                  id: user.id,
+                  email: formData.email,
+                  username: formData.username,
+                  first_name: formData.firstName,
+                  last_name: formData.lastName,
+                  role: 'user',
+                  bio: '',
+                  avatar_url: '',
+                  website: '',
+                  location: '',
+                  is_private: false,
+                  followers_count: 0,
+                  following_count: 0,
+                  posts_count: 0
+                })
+              
+              profileError = error
+              if (!error) break // Success, exit retry loop
+              
+            } catch (err) {
+              profileError = err
+            }
+            
+            retryCount++
+            if (retryCount < maxRetries) {
+              // Wait before retry
+              await new Promise(resolve => setTimeout(resolve, 1000 * retryCount))
+            }
+          }
 
           if (profileError) {
-            console.error('Profile creation error:', profileError)
+            console.error('Profile creation error after retries:', profileError)
             
             // Handle specific profile creation errors
-            if (profileError.message.includes('duplicate key')) {
+            const errorMessage = profileError instanceof Error ? profileError.message : String(profileError)
+            
+            if (errorMessage.includes('duplicate key')) {
               throw new Error('Username is already taken. Please choose a different username.')
-            } else if (profileError.message.includes('violates not-null constraint')) {
+            } else if (errorMessage.includes('violates not-null constraint')) {
               throw new Error('Please fill in all required fields.')
+            } else if (errorMessage.includes('violates row-level security policy')) {
+              throw new Error('Profile creation failed due to security policy. Please contact support or try again.')
             } else {
-              throw new Error('Failed to create profile: ' + profileError.message)
+              throw new Error('Failed to create profile: ' + errorMessage)
             }
           }
 

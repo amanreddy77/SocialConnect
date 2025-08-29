@@ -4,7 +4,6 @@ import { useAuth } from '@/hooks/useAuth'
 import AuthForm from '@/components/AuthForm'
 import MainApp from '@/components/MainApp'
 import LoadingSpinner from '@/components/LoadingSpinner'
-import TestConnection from '@/components/TestConnection'
 
 export default function Home() {
   const { user, profile, loading, error, retryAuth, isInitialized } = useAuth()
@@ -56,7 +55,7 @@ export default function Home() {
             </div>
           </div>
         ) : (
-          <MainApp />
+          <MainApp key={profile?.id} />
         )}
       </div>
     </div>

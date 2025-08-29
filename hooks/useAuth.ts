@@ -99,23 +99,83 @@ export function useAuth() {
     }
   }, [user?.id, isInitialized]) // Only re-run if user ID or initialization state changes
 
+  const createProfileIfMissing = async (userId: string) => {
+    try {
+      console.log('useAuth: Creating missing profile for user:', userId)
+      
+      // Get user data from auth
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError) throw userError
+      
+      // Create basic profile
+      const { data: newProfile, error: createError } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          username: `user_${userId.slice(0, 8)}`,
+          email: user?.email || '',
+          first_name: 'User',
+          last_name: 'User',
+          full_name: 'User User',
+          avatar_url: '',
+          role: 'user',
+          is_private: false,
+          privacy_level: 'public'
+        })
+        .select()
+        .single()
+      
+      if (createError) {
+        console.error('useAuth: Failed to create profile:', createError)
+        setError('Failed to create user profile. Please contact support.')
+        setLoading(false)
+        return
+      }
+      
+      console.log('useAuth: Profile created successfully:', newProfile)
+      setProfile(newProfile)
+      setError(null)
+      setLoading(false)
+    } catch (error) {
+      console.error('useAuth: Error creating profile:', error)
+      setError('Failed to create user profile. Please try again.')
+      setLoading(false)
+    }
+  }
+
   const fetchProfile = async (userId: string) => {
     try {
       console.log('useAuth: Fetching profile for user:', userId)
       setLoading(true)
       
-      const { data, error: profileError } = await supabase
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Profile fetch timeout')), 10000)
+      })
+      
+      const profilePromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single()
+      
+      const { data, error: profileError } = await Promise.race([profilePromise, timeoutPromise])
 
       if (profileError) {
         console.error('useAuth: Profile fetch error:', profileError)
+        console.error('useAuth: Error details:', {
+          code: profileError.code,
+          message: profileError.message,
+          details: profileError.details,
+          hint: profileError.hint
+        })
         
         // Handle specific error types
         if (profileError.code === 'PGRST116') {
-          setError('Profile not found. This might be a database permission issue.')
+          console.log('useAuth: Profile not found, creating new profile...')
+          // Try to create profile if it doesn't exist
+          await createProfileIfMissing(userId)
+          return
         } else if (profileError.code === '42501') {
           setError('Permission denied. Please check your database permissions.')
         } else if (profileError.code === '406') {
