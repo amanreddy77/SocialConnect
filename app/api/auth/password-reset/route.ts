@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
         })
       
       if (tokenError) {
-        console.error('Error storing reset token:', tokenError)
+       
         return NextResponse.json(
           { error: 'Failed to process password reset request. Please try again.' },
           { status: 500 }
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       }
       
     } catch (dbError) {
-      console.error('Database error:', dbError)
+    
       // Don't reveal if user exists or not for security
       return NextResponse.json({
         message: 'If an account with this email exists, password reset instructions have been sent.'

@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       })
       
       if (error) {
-        console.error('Email verification error:', error)
+     
         return NextResponse.redirect(new URL(`/auth/error?message=${encodeURIComponent(error.message)}`, request.url))
       }
       

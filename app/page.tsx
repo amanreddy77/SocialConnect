@@ -8,7 +8,7 @@ import LoadingSpinner from '@/components/LoadingSpinner'
 export default function Home() {
   const { user, profile, loading, error, retryAuth, isInitialized } = useAuth()
 
-  console.log('Home page render:', { user: !!user, profile: !!profile, loading, error, isInitialized })
+
 
   // Show test component first to debug connection
   return (
