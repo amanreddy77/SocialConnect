@@ -11,8 +11,11 @@ import AdminPanel from './AdminPanel'
 import LoadingSpinner from './LoadingSpinner'
 import SearchResults from './SearchResults'
 import UserProfile from './UserProfile'
+import DataRender from './dataRender'
 
-type View = 'feed' | 'profile' | 'notifications' | 'admin' | 'search' | 'userProfile'
+
+
+type View = 'feed' | 'profile' | 'notifications' | 'admin' | 'search' | 'userProfile' | 'data'
 
 export default function MainApp() {
   const { profile, isAdmin, loading } = useAuth()
@@ -136,7 +139,8 @@ export default function MainApp() {
               onPostDeleted={() => {}} 
               onViewChange={(view: string) => handleViewChange(view as View)}
             />
-          )
+            )
+        
         case 'search':
           return (
             <SearchResults 
@@ -161,6 +165,8 @@ export default function MainApp() {
               onViewChange={(view: string) => handleViewChange(view as View)}
             />
           )
+        case 'data':
+          return <DataRender key={`data-${viewKey}`} />
         default:
           return (
             <Feed 

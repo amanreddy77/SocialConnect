@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
-import { Home, User, Bell, Settings, Shield, X, Search } from 'lucide-react'
+import { Home, User, Bell, Settings, Shield, X, Search, Database } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface SidebarProps {
@@ -68,6 +68,7 @@ export default function Sidebar({ isOpen, onClose, onViewChange, currentView, is
     { id: 'search', label: 'Search', icon: Search },
     { id: 'profile', label: 'My Profile', icon: User },
     { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'data', label: 'API Data', icon: Database },
     ...(isAdmin ? [{ id: 'admin', label: 'Admin Panel', icon: Shield }] : []),
   ]
 
