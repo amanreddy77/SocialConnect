@@ -9,6 +9,8 @@ A modern, scalable social media platform built with Next.js, TypeScript, and Sup
 - **📱 Content Management**: Create, edit, and delete posts with image support
 - **🔍 Search & Discovery**: Find users and discover content
 - **👨‍💼 Admin Panel**: Comprehensive user and content management
+- **🌙 Dark Mode**: Beautiful dark/light theme toggle with system preference detection
+- **📊 API Integration**: Real-time data fetching from external APIs (JSONPlaceholder)
 - **🔒 Security**: Row Level Security, input validation, and XSS protection
 - **📱 Responsive**: Mobile-first design with Tailwind CSS
 
@@ -75,6 +77,21 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+## 🎮 Using the New Features
+
+### Dark Mode
+1. **Toggle Theme**: Click the moon/sun icon in the top navigation bar
+2. **Automatic Detection**: On first visit, the app detects your system's theme preference
+3. **Persistent**: Your theme choice is saved and remembered across sessions
+4. **System Sync**: The app automatically follows your system's dark/light mode changes
+
+### API Data Integration
+1. **Access API Data**: Click "API Data" in the sidebar navigation
+2. **View Live Data**: See real-time posts from JSONPlaceholder API
+3. **Interactive Display**: Browse through the first 5 posts with full content
+4. **Console Logging**: Check browser console for complete API response data
+5. **Error Handling**: If the API is unavailable, you'll see a user-friendly error message
+
 ## 🗄️ Database Schema
 
 The application uses a well-structured PostgreSQL schema with:
@@ -132,13 +149,65 @@ NEXT_PUBLIC_APP_URL=https://your-domain.vercel.app
 
 ```
 ├── app/                    # Next.js app directory
+│   ├── api/               # API routes
+│   ├── auth/              # Authentication pages
+│   ├── globals.css        # Global styles
+│   ├── layout.tsx         # Root layout with theme provider
+│   └── page.tsx           # Home page
 ├── components/            # React components
+│   ├── dataRender.tsx     # API data display component
+│   ├── MainApp.tsx        # Main application component
+│   ├── Navigation.tsx     # Navigation with dark mode toggle
+│   ├── Sidebar.tsx        # Sidebar with dark mode support
+│   └── ...                # Other components
 ├── hooks/                 # Custom React hooks
+│   └── useTheme.tsx       # Dark mode theme management
 ├── lib/                   # Utility functions
 ├── types/                 # TypeScript type definitions
 ├── supabase-setup.sql     # Database schema
 └── README.md             # This file
 ```
+
+## 🌙 Dark Mode Feature
+
+SocialConnect includes a comprehensive dark mode implementation with the following features:
+
+### Theme Management
+- **Automatic Detection**: Detects user's system preference on first visit
+- **Persistent Storage**: Remembers user's theme choice across sessions
+- **Smooth Transitions**: 200ms transitions for all color changes
+- **Toggle Button**: Easy access via moon/sun icon in navigation bar
+
+### Dark Mode Coverage
+- **Complete UI**: All components support both light and dark themes
+- **Navigation Bar**: Dark background with proper contrast
+- **Sidebar**: Dark theme with enhanced hover states
+- **Content Areas**: All cards, buttons, and text elements
+- **API Data Display**: External data components with dark styling
+- **Form Elements**: Inputs, buttons, and interactive elements
+
+### Technical Implementation
+- **Tailwind CSS**: Class-based dark mode with `dark:` prefixes
+- **React Context**: Centralized theme state management
+- **Hydration Safe**: Prevents flash of wrong theme on page load
+- **Responsive**: Works perfectly on all device sizes
+
+## 📊 API Integration
+
+The platform includes real-time API data integration:
+
+### JSONPlaceholder Integration
+- **Live Data Fetching**: Real-time data from `https://jsonplaceholder.typicode.com/posts`
+- **Error Handling**: Comprehensive error states and loading indicators
+- **Data Display**: Beautiful card-based layout for API data
+- **Console Logging**: Complete data logging for debugging
+- **Dark Mode Support**: Full dark theme compatibility
+
+### API Features
+- **Loading States**: Animated spinners during data fetch
+- **Error Recovery**: User-friendly error messages and retry options
+- **Data Visualization**: Clean, readable display of external data
+- **Responsive Design**: Optimized for all screen sizes
 
 ## 🔒 Security Features
 
@@ -159,6 +228,8 @@ NEXT_PUBLIC_APP_URL=https://your-domain.vercel.app
 - ✅ Like and comment on posts
 - ✅ Real-time notifications
 - ✅ User search and discovery
+- ✅ Dark/Light mode toggle with system preference detection
+- ✅ External API data integration and display
 
 ### Admin Features
 - ✅ User management (activate, deactivate, delete)
