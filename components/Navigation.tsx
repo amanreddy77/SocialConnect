@@ -90,7 +90,7 @@ export default function Navigation({ onViewChange, currentView, onMenuClick, onS
   }
 
   return (
-    <nav className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-colors duration-200">
+    <nav className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-lg border-b border-gray-200/50 dark:border-gray-700/50 transition-all duration-300 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Left side - Logo and Menu */}
@@ -104,7 +104,7 @@ export default function Navigation({ onViewChange, currentView, onMenuClick, onS
             
             <div className="flex-shrink-0 flex items-center">
               <h1 
-                className="text-xl font-bold text-primary-600 dark:text-primary-400 cursor-pointer transition-colors duration-200"
+                className="text-xl font-bold bg-gradient-to-r from-primary-600 to-blue-600 dark:from-primary-400 dark:to-blue-400 bg-clip-text text-transparent cursor-pointer transition-all duration-300 hover:scale-105"
                 onClick={() => onViewChange('feed')}
               >
                 SocialConnect
@@ -123,7 +123,7 @@ export default function Navigation({ onViewChange, currentView, onMenuClick, onS
                 placeholder="Search users..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 transition-colors duration-200"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-300 shadow-sm hover:shadow-md focus:shadow-lg"
               />
             </form>
           </div>
@@ -133,13 +133,13 @@ export default function Navigation({ onViewChange, currentView, onMenuClick, onS
             {/* Dark Mode Toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 transition-colors duration-200"
+              className="p-2.5 rounded-xl text-gray-400 hover:text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 transition-all duration-300 hover:scale-110 hover:shadow-md"
               title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
             >
               {theme === 'light' ? (
-                <Moon className="h-6 w-6" />
+                <Moon className="h-5 w-5" />
               ) : (
-                <Sun className="h-6 w-6" />
+                <Sun className="h-5 w-5" />
               )}
             </button>
 
